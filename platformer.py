@@ -1,8 +1,9 @@
 import pygame
   import asyncio
   import platform
-  import random
+  import numpy as np
   import math
+  import random
 
   # Game constants
   WIDTH, HEIGHT = 800, 600
@@ -28,7 +29,17 @@ import pygame
   screen = pygame.display.set_mode((WIDTH, HEIGHT))
   pygame.display.set_caption("Ultimate Platformer")
   clock = pygame.time.Clock()
-  font = pygame.font.SysFont("Arial", 24)
+  font = pygame.font.SysFont("arial", 24)
+
+  # Sound generation
+  def create_sound(frequency, duration, sample_rate=44100):
+      t = np.linspace(0, duration, int(sample_rate * duration), False)
+      wave = 0.1 * np.sin(2 * np.pi * frequency * t)
+      wave += 0.05 * np.sin(2 * np.pi * (frequency * 1.5) * t)
+      stereo_wave = np.array([wave, wave]).T
+      return pygame.sndarray.make_sound((stereo_wave * 32767).astype(np.int16))
+
+  coin_sound = create_sound(880, 0.2)
 
   # Player class
   class Player:
@@ -109,7 +120,7 @@ import pygame
           y = random.randint(0, HEIGHT)
           brightness = random.uniform(0.5, 1.0)
           twinkle = 1 + 0.2 * math.sin(animation_time * 0.05 + x * y)
-          value = min(255, max(0, int(255 * brightness * twinkle)))
+          value = min(255, max(0, int(255 * brightness * value)))
           pygame.draw.circle(screen, (value, value, value), (x, y), 2)
 
   # Game setup
@@ -158,6 +169,7 @@ import pygame
           for coin in coins:
               if player.rect.colliderect(coin.rect):
                   coins_to_remove.append(coin)
+                  coin_sound.play()
           for coin in coins_to_remove:
               coins.remove(coin)
           if not coins:
@@ -171,19 +183,19 @@ import pygame
       for coin in coins:
           coin.draw()
       player.draw()
-      lives_text = font.render(f"Lives: {lives}", True, (255, 255, 255))
+      lives_text = font.render(f"Lives: {lives}", True, (255, 255))
       screen.blit(lives_text, (10, 10))
       if game_over:
           if not coins:
               text = font.render("You Win! Press R to Restart", True, (255, 255, 255))
           else:
-              text = font.render("Game Over! Press R to Restart", True, (255, 255, 255))
+              text = font.render("Game Over! Press R to Restart", True, (255, 255))
           screen.blit(text, (WIDTH // 2 - 150, HEIGHT // 2))
       pygame.display.flip()
       clock.tick(FPS)
       return True
 
-  # Main
+  # Main async loop
   async def main():
       setup()
       running = True
