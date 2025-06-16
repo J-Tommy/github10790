@@ -1,23 +1,28 @@
 import pygame
   import asyncio
   import platform
+  import random
 
   # Game constants
   WIDTH, HEIGHT = 800, 600
   FPS = 60
   PLAYER_SIZE = 40
+  ENEMY_SIZE = 30
   GRAVITY = 0.8
   JUMP_FORCE = -15
   PLAYER_SPEED = 5
   MAX_JUMPS = 2
+  ENEMY_SPEED = 3
   BLUE = (0, 0, 255)
   GREEN = (0, 200, 0)
+  RED = (255, 0, 0)
 
   # Initialize pygame
   pygame.init()
   screen = pygame.display.set_mode((WIDTH, HEIGHT))
   pygame.display.set_caption("Ultimate Platformer")
   clock = pygame.time.Clock()
+  font = pygame.font.SysFont("Arial", 24)
 
   # Player class
   class Player:
@@ -58,27 +63,61 @@ import pygame
       def draw(self):
           pygame.draw.rect(screen, GREEN, self.rect)
 
+  # Enemy class
+  class Enemy:
+      def __init__(self, x, y, min_x, max_x, initial_vx):
+          self.rect = pygame.Rect(x, y, ENEMY_SIZE, ENEMY_SIZE)
+          self.min_x = min_x
+          self.max_x = max_x
+          self.vx = initial_vx
+
+      def update(self):
+          self.rect.x += self.vx
+          if self.rect.left < self.min_x or self.rect.right > self.max_x:
+              self.vx = -self.vx
+
+      def draw(self):
+          pygame.draw.rect(screen, RED, self.rect)
+
   # Game setup
   def setup():
-      global player, platforms
+      global player, platforms, enemies, game_over
       player = Player(100, HEIGHT - 100)
       platforms = [
-          Platform(0, HEIGHT - 20, WIDTH, 20),  # Ground
+          Platform(0, HEIGHT - 20, WIDTH, 20),
           Platform(200, HEIGHT - 150, 100, 20),
           Platform(400, HEIGHT - 250, 100, 20)
       ]
+      enemies = [
+          Enemy(250, HEIGHT - 50, 200, 300, ENEMY_SPEED),
+          Enemy(450, HEIGHT - 280, 400, 500, -ENEMY_SPEED)
+      ]
+      game_over = False
 
   # Game loop
   def update_loop():
+      global game_over
       for event in pygame.event.get():
           if event.type == pygame.QUIT:
               return False
-      keys = pygame.key.get_pressed()
-      player.update(keys, platforms)
+          if event.type == pygame.KEYDOWN and game_over and event.key == pygame.K_r:
+              setup()
+      if not game_over:
+          keys = pygame.key.get_pressed()
+          player.update(keys, platforms)
+          for enemy in enemies:
+              enemy.update()
+              if player.rect.colliderect(enemy.rect):
+                  game_over = True
       screen.fill((0, 0, 0))
       for platform in platforms:
           platform.draw()
+      for enemy in enemies:
+          enemy.draw()
       player.draw()
+      if game_over:
+          text = font.render("Game Over! Press R to Restart", True, (255, 255, 255))
+          screen.blit(text, (WIDTH // 2 - 150, HEIGHT // 2))
       pygame.display.flip()
       clock.tick(FPS)
       return True
