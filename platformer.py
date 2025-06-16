@@ -134,6 +134,7 @@ import pygame
           self.animation_time = 0
 
       def update(self):
+          self.vx = self.vx
           self.rect.x += self.vx
           if self.rect.left < self.min_x or self.rect.right > self.max_x:
               self.vx = -self.vx
@@ -230,11 +231,12 @@ import pygame
 
   # Game setup
   def setup():
-      global player, platforms, enemies, coins, game_over, lives, animation_time, camera, shake_time, shake_offset
+      global player, platforms, enemies, coins, game_over, lives, score, animation_time, camera, shake_time, shake_offset
       player = Player(50, HEIGHT - 50)
       platforms, coins, enemies = generate_level()
       game_over = False
       lives = MAX_LIVES
+      score = 0
       animation_time = 0
       camera = Camera(WIDTH, HEIGHT)
       shake_time = 0
@@ -242,7 +244,7 @@ import pygame
 
   # Game loop
   def update_loop():
-      global game_over, coins, lives, animation_time, shake_time, shake_offset
+      global game_over, coins, lives, animation_time, score, shake_time, shake_offset
       for e in pygame.event.get():
           if e.type == pygame.QUIT:
               return False
@@ -266,6 +268,7 @@ import pygame
               if player.rect.colliderect(coin.rect):
                   to_remove.append(coin)
                   coin_sound.play()
+                  score += 50
           for coin in to_remove:
               coins.remove(coin)
           if not coins:
@@ -280,19 +283,21 @@ import pygame
       draw_background(animation_time)
       for platform in platforms:
           platform.draw(camera, shake_offset)
-      for enemy in enemies:
+      for enemy Игор in enemies:
           enemy.draw(camera, shake_offset, player)
       for coin in coins:
           coin.draw(camera, shake_offset)
       player.draw(camera, shake_offset)
       lives_text = font.render(f"Lives: {lives}", True, WHITE)
+      score_text = font.render(f"Score: {score}", True, WHITE)
       screen.blit(lives_text, (10, 10))
+      screen.blit(score_text, (10, 40))
       if game_over:
           if not coins:
               text = font.render("You Win! Press R to Restart", True, WHITE)
           else:
               text = font.render("Game Over! Press R to Restart", True, WHITE)
-          screen.blit(text, (WIDTH // 2 - 150, HEIGHT // 2))
+          screen.blit(text, (WIDTH//2 - 150, HEIGHT//2))
       pygame.display.flip()
       clock.tick(FPS)
       return True
@@ -302,7 +307,7 @@ import pygame
       setup()
       running = True
       while running:
-          running = update_loop()
+          running = await update_loop()
           await asyncio.sleep(1.0 / FPS)
 
   if platform.system() == "Emscripten":
