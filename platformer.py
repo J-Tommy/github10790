@@ -17,6 +17,7 @@ import pygame
   MAX_JUMPS = 2
   ENEMY_SPEED = 3
   MAX_LIVES = 3
+  WORLD_WIDTH = 2400
   SKY_TOP = (100, 150, 255)
   SKY_BOTTOM = (200, 220, 255)
   BLUE = (0, 0, 255)
@@ -67,18 +68,20 @@ import pygame
               self.vy = JUMP_FORCE
               self.on_ground = False
               self.jump_count += 1
-          self.rect.x = max(0, min(self.rect.x, WIDTH - PLAYER_SIZE))
+          self.rect.x = max(0, min(self.rect.x, WORLD_WIDTH - PLAYER_SIZE))
 
-      def draw(self):
-          pygame.draw.circle(screen, BLUE, self.rect.center, PLAYER_SIZE // 2)
+      def draw(self, camera):
+          center = camera.apply(self).center
+          pygame.draw.circle(screen, BLUE, center, PLAYER_SIZE // 2)
 
   # Platform class
   class Platform:
       def __init__(self, x, y, width, height):
           self.rect = pygame.Rect(x, y, width, height)
 
-      def draw(self):
-          pygame.draw.rect(screen, GREEN, self.rect)
+      def draw(self, camera):
+          rect = camera.apply(self)
+          pygame.draw.rect(screen, GREEN, rect)
 
   # Enemy class
   class Enemy:
@@ -93,16 +96,30 @@ import pygame
           if self.rect.left < self.min_x or self.rect.right > self.max_x:
               self.vx = -self.vx
 
-      def draw(self):
-          pygame.draw.rect(screen, RED, self.rect)
+      def draw(self, camera):
+          rect = camera.apply(self)
+          pygame.draw.rect(screen, RED, rect)
 
   # Coin class
   class Coin:
       def __init__(self, x, y):
           self.rect = pygame.Rect(x, y, COIN_SIZE, COIN_SIZE)
 
-      def draw(self):
-          pygame.draw.circle(screen, YELLOW, self.rect.center, COIN_SIZE // 2)
+      def draw(self, camera):
+          center = camera.apply(self).center
+          pygame.draw.circle(screen, YELLOW, center, COIN_SIZE // 2)
+
+  # Camera class
+  class Camera:
+      def __init__(self, width, height):
+          self.rect = pygame.Rect(0, 0, width, height)
+
+      def apply(self, entity):
+          return pygame.Rect(entity.rect.x - self.rect.x, entity.rect.y, entity.rect.width, entity.rect.height)
+
+      def update(self, target):
+          self.rect.x = target.rect.centerx - WIDTH // 2
+          self.rect.x = max(0, min(self.rect.x, WORLD_WIDTH - WIDTH))
 
   # Draw background
   def draw_background(animation_time):
@@ -120,17 +137,18 @@ import pygame
           y = random.randint(0, HEIGHT)
           brightness = random.uniform(0.5, 1.0)
           twinkle = 1 + 0.2 * math.sin(animation_time * 0.05 + x * y)
-          value = min(255, max(0, int(255 * brightness * value)))
+          value = min(255, max(0), int(255 * brightness * twinkle)))
           pygame.draw.circle(screen, (value, value, value), (x, y), 2)
 
   # Game setup
   def setup():
-      global player, platforms, enemies, coins, game_over, lives, animation_time
+      global player, platforms, enemies, coins, game_over, lives, animation_time, camera
       player = Player(100, HEIGHT - 100)
       platforms = [
-          Platform(0, HEIGHT - 20, WIDTH, 20),
+          Platform(0, HEIGHT - 20, WORLD_WIDTH, 20),
           Platform(200, HEIGHT - 150, 100, 20),
-          Platform(400, HEIGHT - 250, 100, 20)
+          Platform(400, HEIGHT - 250, 100, 20),
+          Platform(600, HEIGHT - 200, 100, 20)
       ]
       enemies = [
           Enemy(250, HEIGHT - 50, 200, 300, ENEMY_SPEED),
@@ -138,11 +156,13 @@ import pygame
       ]
       coins = [
           Coin(250, HEIGHT - 200),
-          Coin(450, HEIGHT - 300)
+          Coin(450, HEIGHT - 300),
+          Coin(650, HEIGHT - 250)
       ]
       game_over = False
       lives = MAX_LIVES
       animation_time = 0
+      camera = Camera(WIDTH, HEIGHT)
 
   # Game loop
   def update_loop():
@@ -174,22 +194,23 @@ import pygame
               coins.remove(coin)
           if not coins:
               game_over = True
+          camera.update(player)
       animation_time += 1
       draw_background(animation_time)
       for platform in platforms:
-          platform.draw()
+          platform.draw(camera)
       for enemy in enemies:
-          enemy.draw()
+          enemy.draw(camera)
       for coin in coins:
-          coin.draw()
-      player.draw()
-      lives_text = font.render(f"Lives: {lives}", True, (255, 255))
+          coin.draw(camera)
+      player.draw(camera)
+      lives_text = font.render(f"Lives: {lives}", True, (255, 255, 255))
       screen.blit(lives_text, (10, 10))
       if game_over:
           if not coins:
               text = font.render("You Win! Press R to Restart", True, (255, 255, 255))
           else:
-              text = font.render("Game Over! Press R to Restart", True, (255, 255))
+              text = font.render("Game Over! Press R to Restart", True, (255, 255, 255))
           screen.blit(text, (WIDTH // 2 - 150, HEIGHT // 2))
       pygame.display.flip()
       clock.tick(FPS)
