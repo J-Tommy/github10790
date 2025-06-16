@@ -2,6 +2,7 @@ import pygame
   import asyncio
   import platform
   import random
+  import math
 
   # Game constants
   WIDTH, HEIGHT = 800, 600
@@ -14,6 +15,8 @@ import pygame
   PLAYER_SPEED = 5
   MAX_JUMPS = 2
   ENEMY_SPEED = 3
+  SKY_TOP = (100, 150, 255)
+  SKY_BOTTOM = (200, 220, 255)
   BLUE = (0, 0, 255)
   GREEN = (0, 200, 0)
   RED = (255, 0, 0)
@@ -89,9 +92,28 @@ import pygame
       def draw(self):
           pygame.draw.circle(screen, YELLOW, self.rect.center, COIN_SIZE // 2)
 
+  # Draw background
+  def draw_background(animation_time):
+      for y in range(HEIGHT):
+          t = y / HEIGHT
+          color = (
+              int(SKY_TOP[0] * (1 - t) + SKY_BOTTOM[0] * t),
+              int(SKY_TOP[1] * (1 - t) + SKY_BOTTOM[1] * t),
+              int(SKY_TOP[2] * (1 - t) + SKY_BOTTOM[2] * t)
+          )
+          pygame.draw.line(screen, color, (0, y), (WIDTH, y))
+      random.seed(42)
+      for _ in range(50):
+          x = random.randint(0, WIDTH)
+          y = random.randint(0, HEIGHT)
+          brightness = random.uniform(0.5, 1.0)
+          twinkle = 1 + 0.2 * math.sin(animation_time * 0.05 + x * y)
+          value = min(255, max(0, int(255 * brightness * twinkle)))
+          pygame.draw.circle(screen, (value, value, value), (x, y), 2)
+
   # Game setup
   def setup():
-      global player, platforms, enemies, coins, game_over
+      global player, platforms, enemies, coins, game_over, animation_time
       player = Player(100, HEIGHT - 100)
       platforms = [
           Platform(0, HEIGHT - 20, WIDTH, 20),
@@ -107,10 +129,11 @@ import pygame
           Coin(450, HEIGHT - 300)
       ]
       game_over = False
+      animation_time = 0
 
   # Game loop
   def update_loop():
-      global game_over, coins
+      global game_over, coins, animation_time
       for event in pygame.event.get():
           if event.type == pygame.QUIT:
               return False
@@ -131,7 +154,8 @@ import pygame
               coins.remove(coin)
           if not coins:
               game_over = True
-      screen.fill((0, 0, 0))
+      animation_time += 1
+      draw_background(animation_time)
       for platform in platforms:
           platform.draw()
       for enemy in enemies:
