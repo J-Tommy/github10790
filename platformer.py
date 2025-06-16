@@ -248,7 +248,7 @@ def setup():
 
 # Game loop
 def update_loop():
-    global game_over, coins, coins_collected, total_coins, lives, score, level_count, animation_time, shake_time, shake_offset
+    global player, platforms, enemies, coins, game_over, lives, level_count, score, total_coins, coins_collected, animation_time, camera, shake_time, shake_offset
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
             return False
