@@ -8,6 +8,7 @@ import pygame
   FPS = 60
   PLAYER_SIZE = 40
   ENEMY_SIZE = 30
+  COIN_SIZE = 20
   GRAVITY = 0.8
   JUMP_FORCE = -15
   PLAYER_SPEED = 5
@@ -16,6 +17,7 @@ import pygame
   BLUE = (0, 0, 255)
   GREEN = (0, 200, 0)
   RED = (255, 0, 0)
+  YELLOW = (255, 255, 0)
 
   # Initialize pygame
   pygame.init()
@@ -79,9 +81,17 @@ import pygame
       def draw(self):
           pygame.draw.rect(screen, RED, self.rect)
 
+  # Coin class
+  class Coin:
+      def __init__(self, x, y):
+          self.rect = pygame.Rect(x, y, COIN_SIZE, COIN_SIZE)
+
+      def draw(self):
+          pygame.draw.circle(screen, YELLOW, self.rect.center, COIN_SIZE // 2)
+
   # Game setup
   def setup():
-      global player, platforms, enemies, game_over
+      global player, platforms, enemies, coins, game_over
       player = Player(100, HEIGHT - 100)
       platforms = [
           Platform(0, HEIGHT - 20, WIDTH, 20),
@@ -92,11 +102,15 @@ import pygame
           Enemy(250, HEIGHT - 50, 200, 300, ENEMY_SPEED),
           Enemy(450, HEIGHT - 280, 400, 500, -ENEMY_SPEED)
       ]
+      coins = [
+          Coin(250, HEIGHT - 200),
+          Coin(450, HEIGHT - 300)
+      ]
       game_over = False
 
   # Game loop
   def update_loop():
-      global game_over
+      global game_over, coins
       for event in pygame.event.get():
           if event.type == pygame.QUIT:
               return False
@@ -109,14 +123,27 @@ import pygame
               enemy.update()
               if player.rect.colliderect(enemy.rect):
                   game_over = True
+          coins_to_remove = []
+          for coin in coins:
+              if player.rect.colliderect(coin.rect):
+                  coins_to_remove.append(coin)
+          for coin in coins_to_remove:
+              coins.remove(coin)
+          if not coins:
+              game_over = True
       screen.fill((0, 0, 0))
       for platform in platforms:
           platform.draw()
       for enemy in enemies:
           enemy.draw()
+      for coin in coins:
+          coin.draw()
       player.draw()
       if game_over:
-          text = font.render("Game Over! Press R to Restart", True, (255, 255, 255))
+          if not coins:
+              text = font.render("You Win! Press R to Restart", True, (255, 255, 255))
+          else:
+              text = font.render("Game Over! Press R to Restart", True, (255, 255, 255))
           screen.blit(text, (WIDTH // 2 - 150, HEIGHT // 2))
       pygame.display.flip()
       clock.tick(FPS)
