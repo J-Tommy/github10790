@@ -15,6 +15,7 @@ import pygame
   PLAYER_SPEED = 5
   MAX_JUMPS = 2
   ENEMY_SPEED = 3
+  MAX_LIVES = 3
   SKY_TOP = (100, 150, 255)
   SKY_BOTTOM = (200, 220, 255)
   BLUE = (0, 0, 255)
@@ -113,7 +114,7 @@ import pygame
 
   # Game setup
   def setup():
-      global player, platforms, enemies, coins, game_over, animation_time
+      global player, platforms, enemies, coins, game_over, lives, animation_time
       player = Player(100, HEIGHT - 100)
       platforms = [
           Platform(0, HEIGHT - 20, WIDTH, 20),
@@ -129,11 +130,12 @@ import pygame
           Coin(450, HEIGHT - 300)
       ]
       game_over = False
+      lives = MAX_LIVES
       animation_time = 0
 
   # Game loop
   def update_loop():
-      global game_over, coins, animation_time
+      global game_over, coins, lives, animation_time
       for event in pygame.event.get():
           if event.type == pygame.QUIT:
               return False
@@ -145,7 +147,13 @@ import pygame
           for enemy in enemies:
               enemy.update()
               if player.rect.colliderect(enemy.rect):
-                  game_over = True
+                  lives -= 1
+                  player.rect.x = 100
+                  player.rect.y = HEIGHT - 100
+                  player.vy = 0
+                  player.jump_count = 0
+                  if lives <= 0:
+                      game_over = True
           coins_to_remove = []
           for coin in coins:
               if player.rect.colliderect(coin.rect):
@@ -163,6 +171,8 @@ import pygame
       for coin in coins:
           coin.draw()
       player.draw()
+      lives_text = font.render(f"Lives: {lives}", True, (255, 255, 255))
+      screen.blit(lives_text, (10, 10))
       if game_over:
           if not coins:
               text = font.render("You Win! Press R to Restart", True, (255, 255, 255))
@@ -173,7 +183,7 @@ import pygame
       clock.tick(FPS)
       return True
 
-  # Main async loop
+  # Main
   async def main():
       setup()
       running = True
